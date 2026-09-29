@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Math Play</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Math Play">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#6c4cf1">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--bg:#fff7e6;--card:#fff;--ink:#2b2350;--accent:#6c4cf1;--good:#1fb36b;--bad:#ef5b5b;--soft:#ece6ff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1633;--card:#26214a;--ink:#f1eeff;--accent:#9d86ff;--soft:#37306b}}
+:root[data-theme="dark"]{--bg:#1a1633;--card:#26214a;--ink:#f1eeff;--accent:#9d86ff;--soft:#37306b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+body{touch-action:manipulation}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:16px}
+.app{width:100%;max-width:440px;text-align:center}
+h1{margin:4px 0 12px;font-size:1.6rem}
+.modes{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+.modes button{flex:1;font-size:1.5rem;padding:10px 0;border:0;border-radius:14px;background:var(--soft);color:var(--ink);cursor:pointer;transition:transform .15s}
+.modes button.on{background:var(--accent);color:#fff;transform:scale(1.08)}
+.stats{display:flex;justify-content:space-between;font-weight:700;margin-bottom:10px}
+.bar{height:10px;background:var(--soft);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.bar i{display:block;height:100%;width:0;background:var(--good);transition:width .5s cubic-bezier(.3,1.6,.5,1)}
+.card{background:var(--card);border-radius:24px;padding:22px 12px;box-shadow:0 6px 0 rgba(0,0,0,.08);position:relative;overflow:hidden}
+.pal{font-size:3.4rem;display:inline-block;animation:bob 2s ease-in-out infinite}
+.pal.win{animation:jump .7s}
+.pal.lose{animation:shake .5s}
+@keyframes bob{50%{transform:translateY(-8px) rotate(4deg)}}
+@keyframes jump{30%{transform:translateY(-40px) scale(1.25) rotate(-12deg)}60%{transform:translateY(0) scale(.9)}100%{transform:none}}
+@keyframes shake{20%,60%{transform:translateX(-12px)}40%,80%{transform:translateX(12px)}}
+.q{font-size:3rem;font-weight:800;margin:6px 0 16px;animation:pop .35s}
+@keyframes pop{from{transform:scale(.5);opacity:0}}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 6px}
+.opts button{font-size:1.8rem;font-weight:700;padding:16px 0;border:0;border-radius:16px;background:var(--soft);color:var(--ink);cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.12);transition:transform .1s}
+.opts button:active{transform:translateY(3px);box-shadow:none}
+.opts button.right{background:var(--good);color:#fff;animation:jump .6s}
+.opts button.wrong{background:var(--bad);color:#fff;animation:shake .4s}
+.msg{height:28px;margin-top:12px;font-weight:700;font-size:1.1rem}
+.bit{position:absolute;top:-10px;width:10px;height:14px;border-radius:2px;animation:fall 1.2s ease-in forwards;pointer-events:none}
+@keyframes fall{to{transform:translateY(420px) rotate(720deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🎲 Math Play</h1>
+  <div class="modes" id="modes"></div>
+  <div class="stats"><span>⭐ <b id="score">0</b></span><span>🔥 Streak <b id="streak">0</b></span><span>Best <b id="best">0</b></span></div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="card" id="card">
+    <div class="pal" id="pal">🐸</div>
+    <div class="q" id="q"></div>
+    <div class="opts" id="opts"></div>
+    <div class="msg" id="msg">Pick the right answer!</div>
+  </div>
+</div>
+<script>
+var ops=[{s:"+",n:"Add"},{s:"−",n:"Subtract"},{s:"×",n:"Multiply"},{s:"÷",n:"Divide"}];
+var mode=0,score=0,streak=0,best=0,locked=false,ans=0;
+var pals=["🐸","🐼","🦊","🐙","🦄","🐯"];
+var cheers=["Awesome!","Nailed it!","Brilliant!","Boom!","You rock!"];
+function $(i){return document.getElementById(i)}
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function lvl(){return Math.min(3,Math.floor(score/5))}
+function make(){
+  var m=10+lvl()*10,a,b,t=ops[mode].s;
+  if(t==="+"){a=rnd(1,m);b=rnd(1,m);ans=a+b}
+  else if(t==="−"){a=rnd(2,m);b=rnd(1,a);ans=a-b}
+  else if(t==="×"){a=rnd(2,6+lvl()*2);b=rnd(2,10);ans=a*b}
+  else{b=rnd(2,6+lvl()*2);ans=rnd(2,10);a=b*ans}
+  $("q").style.animation="none";void $("q").offsetWidth;$("q").style.animation="";
+  $("q").textContent=a+" "+t+" "+b+" = ?";
+  var set=[ans],g=0;
+  while(set.length<4&&g++<50){var d=ans+rnd(-5,5);if(d>=0&&set.indexOf(d)<0)set.push(d)}
+  set.sort(function(){return Math.random()-.5});
+  $("opts").innerHTML="";
+  set.forEach(function(v){var bt=document.createElement("button");bt.textContent=v;bt.onclick=function(){pick(bt,v)};$("opts").appendChild(bt)});
+  locked=false;
+}
+function anim(cls){var p=$("pal");p.className="pal";void p.offsetWidth;p.className="pal "+cls}
+function confetti(){
+  var c=["#ff5e7e","#ffc93c","#1fb36b","#6c4cf1","#2bb3ff"];
+  for(var i=0;i<26;i++){var e=document.createElement("i");e.className="bit";
+    e.style.left=rnd(2,96)+"%";e.style.background=c[i%5];e.style.animationDelay=(Math.random()*.3)+"s";
+    $("card").appendChild(e);setTimeout(function(x){x.remove()},1700,e)}
+}
+function pick(bt,v){
+  if(locked)return;locked=true;
+  if(v===ans){
+    bt.className="right";score++;streak++;if(streak>best)best=streak;
+    $("msg").textContent=cheers[rnd(0,cheers.length-1)]+(streak>=3?" 🔥":"");
+    anim("win");confetti();
+    if(score%5===0){$("pal").textContent=pals[(score/5)%pals.length];$("msg").textContent="Level up! 🚀"}
+    setTimeout(make,950);
+  }else{
+    bt.className="wrong";streak=0;anim("lose");$("msg").textContent="Almost! Answer is "+ans;
+    var bs=$("opts").children;for(var i=0;i<bs.length;i++)if(+bs[i].textContent===ans)bs[i].className="right";
+    setTimeout(make,1500);
+  }
+  $("score").textContent=score;$("streak").textContent=streak;$("best").textContent=best;
+  $("bar").style.width=((score%5)*20+(score%5===0&&score>0?0:0))+"%";
+}
+ops.forEach(function(o,i){
+  var b=document.createElement("button");b.textContent=o.s;b.title=o.n;b.className=i===0?"on":"";
+  b.onclick=function(){mode=i;var all=$("modes").children;for(var j=0;j<all.length;j++)all[j].className=j===i?"on":"";make()};
+  $("modes").appendChild(b)});
+make();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){})}
+</script>
+</body>
+</html>
